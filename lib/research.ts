@@ -61,7 +61,8 @@ ${robotsTxtContent ? `\nrobots.txt content (pre-fetched, do not search for it ag
 ${shopifyBlock}
 
 For decision_maker: find the founder, owner, or head of ecommerce/retail by name. Include their LinkedIn URL.
-Be efficient — use at most 4 web searches total. Return ONLY valid JSON. No markdown, no explanation.`
+Be efficient — use at most 4 web searches total.
+IMPORTANT: Do NOT write any introductory text or narrate your plan. Do your searches silently, then output ONLY the raw JSON object. No markdown, no code fences, no explanation before or after.`
 
   const tools = [{ type: 'web_search_20250305', name: 'web_search' }] as any[]
   const messages: any[] = [{ role: 'user', content: prompt }]
@@ -90,7 +91,21 @@ Be efficient — use at most 4 web searches total. Return ONLY valid JSON. No ma
     throw new Error('Claude hit token limit mid-response — research too long')
   }
 
-  const textBlock = message.content.find(b => b.type === 'text')
+  let textBlock = message.content.find(b => b.type === 'text')
+
+  // If last message has no JSON, force a rescue turn
+  const hasJson = (text: string) => text.includes('{') && text.includes('}')
+  if (!textBlock || textBlock.type !== 'text' || !hasJson(textBlock.text)) {
+    messages.push({ role: 'assistant', content: message.content })
+    messages.push({ role: 'user', content: 'Output ONLY the JSON object with your research findings. Raw JSON, no other text.' })
+    const rescue = await client.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 2048,
+      messages,
+    })
+    textBlock = rescue.content.find(b => b.type === 'text')
+  }
+
   if (!textBlock || textBlock.type !== 'text') throw new Error('No text response from Claude')
 
   try {
