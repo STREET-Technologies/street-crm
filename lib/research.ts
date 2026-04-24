@@ -68,7 +68,7 @@ Be efficient — use at most 4 web searches total. Return ONLY valid JSON. No ma
 
   let message = await client.messages.create({
     model: 'claude-sonnet-4-6',
-    max_tokens: 4096,
+    max_tokens: 8192,
     tools,
     messages,
   })
@@ -80,10 +80,14 @@ Be efficient — use at most 4 web searches total. Return ONLY valid JSON. No ma
     messages.push({ role: 'assistant', content: message.content })
     message = await client.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 4096,
+      max_tokens: 8192,
       tools,
       messages,
     })
+  }
+
+  if (message.stop_reason === 'max_tokens') {
+    throw new Error('Claude hit token limit mid-response — research too long')
   }
 
   const textBlock = message.content.find(b => b.type === 'text')
@@ -94,6 +98,6 @@ Be efficient — use at most 4 web searches total. Return ONLY valid JSON. No ma
   } catch {
     const match = textBlock.text.match(/\{[\s\S]*\}/)
     if (match) return JSON.parse(match[0])
-    throw new Error('Could not parse JSON from Claude response')
+    throw new Error(`Could not parse JSON. Claude returned: ${textBlock.text.slice(0, 300)}`)
   }
 }
