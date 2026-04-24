@@ -33,20 +33,31 @@ function shopifyFromRobots(content: string): 'Yes' | 'No' | null {
   return SHOPIFY_SIGNALS.some(s => lower.includes(s)) ? 'Yes' : 'No'
 }
 
-export async function researchRetailer(input: ResearchInput) {
+export async function researchRetailer(
+  input: ResearchInput,
+  onProgress?: (msg: string) => void
+) {
   const robotsTxtContent = input.website ? await fetchRobotsTxt(input.website) : ''
   const shopifyStatus = shopifyFromRobots(robotsTxtContent)
+  // Only treat "Yes" as definitive — "No" just means no signals at the hint URL,
+  // the real store may be at a different domain (e.g. philipnormal.co.uk vs philipnormal.store)
+  const shopifyConfirmed = shopifyStatus === 'Yes'
 
   const location = input.area ? `${input.area}, London` : 'London, UK'
   const websiteOrigin = input.website ? getOrigin(input.website) : ''
 
-  // Build a targeted, numbered search plan based on what we already know.
-  // If website + Shopify are pre-determined, Claude only needs 2 searches.
+  // Targeted search plan — number of searches depends on what we already know
   const searches: string[] = []
 
   if (!input.website) {
     searches.push(`"${input.name} ${location}" official website — return the URL`)
-    searches.push(`Fetch <website>/robots.txt — if it contains "cdn.shopify.com", "Disallow: /admin", "/checkouts/", or "/cdn/shop/" set shopify="Yes", else "No". Only "Unknown" if no website found.`)
+  } else if (!shopifyConfirmed) {
+    // Hint provided but Shopify not confirmed — tell Claude to verify the actual store URL
+    searches.push(`Verify "${input.website}" is the primary e-commerce URL for ${input.name}. If the store is at a different domain (e.g. a .store or Shopify subdomain), use that. Fetch the final URL's /robots.txt — if it contains "cdn.shopify.com", "Disallow: /admin", "/checkouts/", or "/cdn/shop/" set shopify="Yes", else "No".`)
+  }
+
+  if (!shopifyConfirmed && !input.website) {
+    searches.push(`Fetch <website>/robots.txt — if it contains "cdn.shopify.com", "Disallow: /admin", "/checkouts/", "/cdn/shop/" set shopify="Yes", else "No". Only "Unknown" if no website found.`)
   }
 
   searches.push(`"${input.name}" site:linkedin.com — return the company LinkedIn page URL`)
@@ -56,16 +67,16 @@ export async function researchRetailer(input: ResearchInput) {
 
   const known = [
     `Retailer: ${input.name}`,
-    input.website ? `Website: ${input.website}` : null,
+    input.website ? `Website hint: ${input.website}` : null,
     `Location: ${location}`,
-    shopifyStatus ? `Shopify: ${shopifyStatus} (confirmed via robots.txt — skip Shopify detection)` : null,
+    shopifyConfirmed ? `Shopify: Yes (confirmed via robots.txt — do not re-check)` : null,
   ].filter(Boolean).join('\n')
 
   const prompt = `You are a retail researcher. Run the ${searches.length} searches below in order, then return a single JSON object.
 
 KNOWN INFO:
 ${known}
-${robotsTxtContent ? `\nrobots.txt (already fetched — do not search for it):\n${robotsTxtContent}\n` : ''}
+${robotsTxtContent ? `\nrobots.txt from website hint (may not be the canonical store URL):\n${robotsTxtContent}\n` : ''}
 SEARCH PLAN — run each in order, do not add extra searches:
 ${searchPlan}
 
@@ -73,8 +84,8 @@ Return ONLY this JSON object. No text before or after, no markdown, no code fenc
 {
   "retailer": "${input.name}",
   "category": "infer from search results, e.g. Outdoor gear / Vintage clothing",
-  "shopify": "${shopifyStatus ?? 'Yes | No | Unknown'}",
-  "website": "${input.website ?? ''}",
+  "shopify": "${shopifyConfirmed ? 'Yes' : 'Yes | No | Unknown'}",
+  "website": "canonical store URL — use the actual e-commerce URL, not just the hint",
   "linkedin": "",
   "contact_email": "",
   "decision_maker": "Name (Role) — LinkedIn URL, or empty string",
@@ -93,9 +104,16 @@ Return ONLY this JSON object. No text before or after, no markdown, no code fenc
     messages,
   })
 
-  // Agentic loop — continues until Claude outputs a text response
+  // Agentic loop — emit progress for each search Claude makes
   let iterations = 0
   while (message.stop_reason === 'tool_use' && iterations < 8) {
+    // Surface the search queries being made
+    for (const block of message.content) {
+      if (block.type === 'tool_use' && block.name === 'web_search') {
+        const query = (block.input as any)?.query
+        if (query) onProgress?.(`Searching: ${query}`)
+      }
+    }
     iterations++
     messages.push({ role: 'assistant', content: message.content })
     message = await client.messages.create({
@@ -112,7 +130,6 @@ Return ONLY this JSON object. No text before or after, no markdown, no code fenc
 
   let textBlock = message.content.find(b => b.type === 'text')
 
-  // Rescue turn if Claude returned narration instead of JSON
   const hasJson = (text: string) => text.includes('{') && text.includes('}')
   if (!textBlock || textBlock.type !== 'text' || !hasJson(textBlock.text)) {
     messages.push({ role: 'assistant', content: message.content })

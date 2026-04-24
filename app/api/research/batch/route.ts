@@ -15,17 +15,20 @@ export async function POST(req: NextRequest) {
   }
 
   const encoder = new TextEncoder()
+  const send = (controller: ReadableStreamDefaultController, payload: object) =>
+    controller.enqueue(encoder.encode(`data: ${JSON.stringify(payload)}\n\n`))
 
   const stream = new ReadableStream({
     async start(controller) {
-      // All retailers research in parallel — results stream as each one finishes
       await Promise.all(
         retailers.map(async (r, i) => {
           try {
-            const result = await researchRetailer(r)
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ _index: i, ...result })}\n\n`))
+            const result = await researchRetailer(r, (msg) => {
+              send(controller, { type: 'progress', index: i, retailer: r.name, message: msg })
+            })
+            send(controller, { type: 'result', index: i, ...result })
           } catch (err) {
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ _index: i, retailer: r.name, error: String(err) })}\n\n`))
+            send(controller, { type: 'result', index: i, retailer: r.name, error: String(err) })
           }
         })
       )

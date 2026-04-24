@@ -2,11 +2,13 @@
 import { useState } from 'react'
 import RetailerCard from './RetailerCard'
 
+type Status = { message: string; done: boolean }
+
 export default function BatchTab() {
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [results, setResults] = useState<any[]>([])
-  const [completed, setCompleted] = useState(0)
+  const [statuses, setStatuses] = useState<Record<number, Status>>({})
   const [total, setTotal] = useState(0)
 
   function parseLines(raw: string) {
@@ -27,7 +29,7 @@ export default function BatchTab() {
     const retailers = parseLines(input)
     setLoading(true)
     setResults([])
-    setCompleted(0)
+    setStatuses({})
     setTotal(retailers.length)
 
     const res = await fetch('/api/research/batch', {
@@ -53,9 +55,13 @@ export default function BatchTab() {
       for (const line of lines) {
         if (!line.startsWith('data: ')) continue
         try {
-          const data = JSON.parse(line.slice(6))
-          setResults(prev => [...prev, data])
-          setCompleted(prev => prev + 1)
+          const event = JSON.parse(line.slice(6))
+          if (event.type === 'progress') {
+            setStatuses(prev => ({ ...prev, [event.index]: { message: event.message, done: false } }))
+          } else if (event.type === 'result') {
+            setResults(prev => [...prev, event])
+            setStatuses(prev => ({ ...prev, [event.index]: { message: 'Done', done: true } }))
+          }
         } catch { /* malformed chunk */ }
       }
     }
@@ -63,7 +69,9 @@ export default function BatchTab() {
     setLoading(false)
   }
 
+  const completed = Object.values(statuses).filter(s => s.done).length
   const lineCount = input.split('\n').filter(l => l.trim()).length
+  const retailerNames = parseLines(input).map(r => r.name)
 
   return (
     <div className="space-y-4">
@@ -87,22 +95,43 @@ export default function BatchTab() {
           <button
             onClick={researchAll}
             disabled={!input.trim() || loading}
-            className="bg-[#CDFF00] text-black px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-[#b8e600] disabled:opacity-40 transition-colors duration-200 cursor-pointer"
+            className="bg-[#CDFF00] text-black px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-[#b8e600] disabled:opacity-40 transition-colors duration-200 cursor-pointer shrink-0"
           >
             {loading
               ? `Researching… ${completed}/${total} done`
               : `Research ${lineCount > 0 ? lineCount : ''} ${lineCount === 1 ? 'retailer' : 'retailers'} →`}
           </button>
 
-          {loading && completed > 0 && (
+          {loading && (
             <div className="flex-1 h-1 bg-[#2a2a2a] rounded-full overflow-hidden">
               <div
                 className="h-full bg-[#CDFF00] transition-all duration-500"
-                style={{ width: `${(completed / total) * 100}%` }}
+                style={{ width: total > 0 ? `${(completed / total) * 100}%` : '0%' }}
               />
             </div>
           )}
         </div>
+
+        {/* Per-retailer status feed */}
+        {loading && Object.keys(statuses).length > 0 && (
+          <div className="space-y-1.5 pt-1">
+            {retailerNames.map((name, i) => {
+              const s = statuses[i]
+              return (
+                <div key={i} className="flex items-start gap-2 text-xs font-mono">
+                  <span className={`shrink-0 mt-0.5 ${s?.done ? 'text-[#CDFF00]' : 'text-[#4b5563]'}`}>
+                    {s?.done ? '✓' : s ? '→' : '·'}
+                  </span>
+                  <span className="text-[#6b7280] shrink-0">{name}</span>
+                  {s && !s.done && (
+                    <span className="text-[#4b5563] truncate">{s.message}</span>
+                  )}
+                  {s?.done && <span className="text-[#CDFF00]/60">done</span>}
+                </div>
+              )
+            })}
+          </div>
+        )}
       </div>
 
       {results.map((r, i) => (
