@@ -33,12 +33,26 @@ For decision_maker: find the founder, owner, or head of ecommerce/retail by name
 
 Return ONLY valid JSON. No markdown, no explanation.`
 
-  const message = await client.messages.create({
+  const tools = [{ type: 'web_search_20250305', name: 'web_search' }] as any[]
+  const messages: any[] = [{ role: 'user', content: prompt }]
+
+  let message = await client.messages.create({
     model: 'claude-sonnet-4-6',
-    max_tokens: 1024,
-    tools: [{ type: 'web_search_20250305', name: 'web_search' } as any],
-    messages: [{ role: 'user', content: prompt }],
+    max_tokens: 4096,
+    tools,
+    messages,
   })
+
+  // If Claude stopped at tool_use without producing a text block, continue the conversation
+  if (message.stop_reason === 'tool_use' && !message.content.find(b => b.type === 'text')) {
+    messages.push({ role: 'assistant', content: message.content })
+    message = await client.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 1024,
+      tools,
+      messages,
+    })
+  }
 
   const textBlock = message.content.find(b => b.type === 'text')
   if (!textBlock || textBlock.type !== 'text') throw new Error('No text response from Claude')
