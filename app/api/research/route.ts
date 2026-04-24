@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { researchRetailer } from '@/lib/research'
 
-export const maxDuration = 120
+export const maxDuration = 300
 
 export async function POST(req: NextRequest) {
   const cookie = req.cookies.get('auth')
