@@ -70,8 +70,8 @@ export default function SingleTab() {
               <input className={inputClass} value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Jaadu Boutique" />
             </div>
             <div>
-              <label className="text-xs text-[#6b7280] block mb-1.5 tracking-wide">Website hint</label>
-              <input className={inputClass} value={website} onChange={e => setWebsite(e.target.value)} placeholder="optional" />
+              <label className="text-xs text-[#6b7280] block mb-1.5 tracking-wide">Website *</label>
+              <input className={inputClass} value={website} onChange={e => setWebsite(e.target.value)} placeholder="e.g. formse15.com" />
             </div>
             <div>
               <label className="text-xs text-[#6b7280] block mb-1.5 tracking-wide">Area</label>
@@ -96,7 +96,7 @@ export default function SingleTab() {
           <div className="flex items-center gap-3">
             <button
               onClick={research}
-              disabled={!name || loading}
+              disabled={!name || !website || loading}
               className="bg-[#CDFF00] text-black px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-[#b8e600] disabled:opacity-40 transition-colors duration-200 cursor-pointer"
             >
               {loading ? `Researching… ${elapsed}s` : duplicate ? 'Research again →' : 'Research →'}

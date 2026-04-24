@@ -1,8 +1,8 @@
 'use client'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import RetailerCard from './RetailerCard'
 
-type Status = { message: string; done: boolean; error?: boolean }
+type Status = { message: string; done: boolean; error?: boolean; startedAt?: number; finishedAt?: number }
 
 export default function BatchTab() {
   const [input, setInput] = useState('')
@@ -10,6 +10,15 @@ export default function BatchTab() {
   const [results, setResults] = useState<any[]>([])
   const [statuses, setStatuses] = useState<Record<number, Status>>({})
   const [total, setTotal] = useState(0)
+  const [tick, setTick] = useState(0)
+  const [validationError, setValidationError] = useState('')
+
+  // Tick every second so the elapsed timers re-render live
+  useEffect(() => {
+    if (!loading) return
+    const id = setInterval(() => setTick(t => t + 1), 1000)
+    return () => clearInterval(id)
+  }, [loading])
 
   function parseLines(raw: string) {
     return raw.split('\n').map(l => l.trim()).filter(Boolean).map(l => {
@@ -27,19 +36,28 @@ export default function BatchTab() {
 
   async function researchAll() {
     const retailers = parseLines(input)
+
+    // Enforce mandatory website — dramatically improves result quality
+    const missing = retailers.filter(r => !r.website).map(r => r.name)
+    if (missing.length) {
+      setValidationError(`Website is required for all retailers. Missing: ${missing.join(', ')}`)
+      return
+    }
+
+    setValidationError('')
     setLoading(true)
     setResults([])
     setTotal(retailers.length)
 
-    // Initialise all statuses immediately so the feed shows from the start
+    const now = Date.now()
     const initial: Record<number, Status> = {}
-    retailers.forEach((_, i) => { initial[i] = { message: 'Researching…', done: false } })
+    retailers.forEach((_, i) => { initial[i] = { message: 'Researching…', done: false, startedAt: now } })
     setStatuses(initial)
 
-    // Sequential with small stagger to avoid Vercel cold-start collisions
     await Promise.all(
       retailers.map(async (r, i) => {
         await new Promise(res => setTimeout(res, i * 500))
+        setStatuses(prev => ({ ...prev, [i]: { ...prev[i], startedAt: Date.now() } }))
         try {
           const res = await fetch('/api/research', {
             method: 'POST',
@@ -51,11 +69,11 @@ export default function BatchTab() {
           try { data = JSON.parse(text) } catch { throw new Error(`Server error ${res.status}: ${text.slice(0, 120)}`) }
           if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`)
           setResults(prev => [...prev, data])
-          setStatuses(prev => ({ ...prev, [i]: { message: 'Done', done: true } }))
+          setStatuses(prev => ({ ...prev, [i]: { ...prev[i], message: 'Done', done: true, finishedAt: Date.now() } }))
         } catch (err) {
           const errMsg = String(err)
           setResults(prev => [...prev, { retailer: r.name, error: errMsg }])
-          setStatuses(prev => ({ ...prev, [i]: { message: errMsg, done: true, error: true } }))
+          setStatuses(prev => ({ ...prev, [i]: { ...prev[i], message: errMsg, done: true, error: true, finishedAt: Date.now() } }))
         }
       })
     )
@@ -65,24 +83,34 @@ export default function BatchTab() {
 
   const completed = Object.values(statuses).filter(s => s.done).length
   const lineCount = input.split('\n').filter(l => l.trim()).length
-  const retailerNames = parseLines(input).map(r => r.name)
+  const parsedRetailers = parseLines(input)
+
+  function elapsed(s?: Status) {
+    if (!s?.startedAt) return ''
+    const end = s.finishedAt ?? Date.now()
+    return `${Math.floor((end - s.startedAt) / 1000)}s`
+  }
+
+  // Reference tick to re-render while loading (avoids unused-var warning)
+  void tick
 
   return (
     <div className="space-y-4">
       <div className="bg-[#111111] border border-[#2a2a2a] rounded-xl p-5 space-y-4">
         <div>
           <label className="text-xs text-[#6b7280] block mb-1.5 tracking-wide">
-            One per line — name only,{' '}
+            One per line — <span className="text-[#CDFF00]">website required</span>.{' '}
             <code className="text-[#CDFF00] bg-[#0a0a0a] px-1.5 py-0.5 rounded text-xs">Name https://url</code>
-            , or{' '}
+            {' '}or{' '}
             <code className="text-[#CDFF00] bg-[#0a0a0a] px-1.5 py-0.5 rounded text-xs">Name, website, area</code>
           </label>
           <textarea
             className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg px-3 py-2.5 text-sm text-white placeholder-[#4b5563] font-mono h-36 focus:outline-none focus:border-[#CDFF00] transition-colors duration-200 resize-none"
             value={input}
-            onChange={e => setInput(e.target.value)}
-            placeholder={"Bidhaar\nForm SE15 https://www.formse15.com\nJaadu Boutique, , Dulwich"}
+            onChange={e => { setInput(e.target.value); setValidationError('') }}
+            placeholder={"Bidhaar https://bidhaar.com\nForm SE15 https://www.formse15.com\nPhilip Normal https://philipnormal.store"}
           />
+          {validationError && <p className="text-red-400 text-xs mt-2">{validationError}</p>}
         </div>
 
         <div className="flex items-center gap-4">
@@ -106,20 +134,22 @@ export default function BatchTab() {
           )}
         </div>
 
-        {/* Per-retailer status feed — visible from the moment research starts */}
         {loading && (
           <div className="space-y-1.5 pt-1">
-            {retailerNames.map((name, i) => {
+            {parsedRetailers.map((r, i) => {
               const s = statuses[i]
               return (
                 <div key={i} className="flex items-center gap-2 text-xs font-mono">
-                  <span className={`shrink-0 ${s?.done ? (s.error ? 'text-red-400' : 'text-[#CDFF00]') : 'text-[#4b5563]'}`}>
+                  <span className={`shrink-0 w-4 ${s?.done ? (s.error ? 'text-red-400' : 'text-[#CDFF00]') : 'text-[#4b5563]'}`}>
                     {s?.done ? (s.error ? '✗' : '✓') : '→'}
                   </span>
-                  <span className="text-[#6b7280] shrink-0">{name}</span>
-                  <span className={`truncate ${s?.done ? (s.error ? 'text-red-400/60' : 'text-[#CDFF00]/60') : 'text-[#4b5563]'}`}>
+                  <span className="text-[#6b7280] shrink-0">{r.name}</span>
+                  <span className={`truncate flex-1 ${s?.done ? (s.error ? 'text-red-400/70' : 'text-[#CDFF00]/60') : 'text-[#4b5563]'}`}>
                     {s?.message ?? ''}
                   </span>
+                  {s && (
+                    <span className="text-[#4b5563] shrink-0 tabular-nums">{elapsed(s)}</span>
+                  )}
                 </div>
               )
             })}
