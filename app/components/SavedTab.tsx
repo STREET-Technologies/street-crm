@@ -13,12 +13,13 @@ export type Retailer = {
   linkedin: string
   contact_email: string
   decision_maker: string
+  commercial_contact: string
   notes: string
   robots_txt: string
   last_researched_at: string
 }
 
-const CSV_HEADERS = ['Retailer', 'Category', 'Shopify', 'Website', 'LinkedIn', 'Contact Email', 'Decision-Maker (Name + LinkedIn)', 'Notes', 'Robots.txt', 'Area']
+const CSV_HEADERS = ['Retailer', 'Category', 'Shopify', 'Website', 'LinkedIn', 'Contact Email', 'Decision-Maker (Name + LinkedIn)', 'Commercial Contact (Name + LinkedIn)', 'Notes', 'Robots.txt', 'Area']
 
 function csvEscape(v: string | undefined) {
   const s = v ?? ''
@@ -30,7 +31,7 @@ function buildCsv(rows: Retailer[]) {
   for (const r of rows) {
     lines.push([
       r.retailer, r.category, r.shopify, r.website, r.linkedin,
-      r.contact_email, r.decision_maker, r.notes, r.robots_txt, r.area,
+      r.contact_email, r.decision_maker, r.commercial_contact, r.notes, r.robots_txt, r.area,
     ].map(csvEscape).join(','))
   }
   return lines.join('\n')

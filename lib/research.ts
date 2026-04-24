@@ -62,6 +62,7 @@ export async function researchRetailer(
 
   searches.push(`"${input.name}" site:linkedin.com — return the company LinkedIn page URL`)
   searches.push(`"${input.name}" founder OR owner OR director — return their full name, role, and LinkedIn profile URL`)
+  searches.push(`"${input.name}" "head of retail" OR "head of wholesale" OR "head of buying" OR "head of partnerships" OR buyer — return name, role, and LinkedIn profile URL of any commercial/buying decision-maker. Return empty if the retailer is clearly a single-owner indie (same person as the founder).`)
 
   const searchPlan = searches.map((s, i) => `${i + 1}. ${s}`).join('\n')
 
@@ -89,6 +90,7 @@ Return ONLY this JSON object. No text before or after, no markdown, no code fenc
   "linkedin": "",
   "contact_email": "",
   "decision_maker": "Name (Role) — LinkedIn URL, or empty string",
+  "commercial_contact": "Name (Role) — LinkedIn URL for a commercial buyer / head of retail / head of wholesale, or empty string if the retailer is a single-owner indie where the founder fills this role",
   "notes": "1-2 sentences about the retailer including location",
   "robots_txt": "${websiteOrigin ? websiteOrigin + '/robots.txt' : ''}",
   "area": "${input.area ?? ''}"

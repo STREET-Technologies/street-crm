@@ -10,6 +10,7 @@ type Retailer = {
   linkedin: string
   contact_email: string
   decision_maker: string
+  commercial_contact: string
   notes: string
   robots_txt: string
   last_researched_at: string
@@ -98,6 +99,25 @@ export default function RetailerDetailModal({ retailer, onClose }: { retailer: R
                 )
               })() : (
                 <div className="text-sm text-white">{retailer.decision_maker}</div>
+              )}
+            </div>
+          )}
+
+          {retailer.commercial_contact && (
+            <div>
+              <div className="text-xs text-[#4b5563] mb-1 tracking-wide">Commercial Contact</div>
+              {retailer.commercial_contact.includes('linkedin.com') ? (() => {
+                const parts = retailer.commercial_contact.split('—')
+                const name = parts[0]?.trim()
+                const url = parts[1]?.trim()
+                return (
+                  <div className="text-sm text-white">
+                    {name}
+                    {url && <> — <a href={url} target="_blank" rel="noopener noreferrer" className="text-[#CDFF00] hover:underline">{url}</a></>}
+                  </div>
+                )
+              })() : (
+                <div className="text-sm text-white">{retailer.commercial_contact}</div>
               )}
             </div>
           )}

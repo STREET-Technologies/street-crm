@@ -25,7 +25,8 @@ export default function RetailerCard({ data, onSave, onDiscard }: Props) {
     { key: 'retailer', label: 'Retailer' }, { key: 'category', label: 'Category' },
     { key: 'shopify', label: 'Shopify' }, { key: 'website', label: 'Website' },
     { key: 'linkedin', label: 'LinkedIn' }, { key: 'contact_email', label: 'Email' },
-    { key: 'decision_maker', label: 'Decision-Maker' }, { key: 'area', label: 'Area' },
+    { key: 'decision_maker', label: 'Decision-Maker' }, { key: 'commercial_contact', label: 'Commercial Contact' },
+    { key: 'area', label: 'Area' },
     { key: 'notes', label: 'Notes' }, { key: 'robots_txt', label: 'Robots.txt' },
   ]
 
