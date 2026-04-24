@@ -17,7 +17,7 @@ export default function Home() {
     <main className="min-h-screen bg-[#0a0a0a]">
       <header className="border-b border-[#2a2a2a] px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <span className="text-white font-semibold tracking-widest text-sm uppercase">STREET</span>
+          <span className="text-white text-lg tracking-wider uppercase" style={{ fontFamily: 'var(--font-hanson)' }}>STREET</span>
           <span className="text-[#2a2a2a]">/</span>
           <span className="text-[#6b7280] text-sm">Retailer Research</span>
         </div>

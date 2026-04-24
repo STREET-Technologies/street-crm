@@ -25,7 +25,7 @@ export default function LoginPage() {
     <main className="min-h-screen flex items-center justify-center bg-[#0a0a0a]">
       <form onSubmit={handleSubmit} className="bg-[#111111] border border-[#2a2a2a] p-8 rounded-2xl w-80 space-y-5">
         <div>
-          <h1 className="text-lg font-semibold tracking-widest text-white uppercase">STREET</h1>
+          <h1 className="text-2xl tracking-wider text-white uppercase" style={{ fontFamily: 'var(--font-hanson)' }}>STREET</h1>
           <p className="text-xs text-[#6b7280] mt-0.5 tracking-wide">Retailer Research</p>
         </div>
         <input
