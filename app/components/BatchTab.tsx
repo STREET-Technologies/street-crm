@@ -33,7 +33,8 @@ export default function BatchTab() {
 
   function handlePaste(i: number, e: React.ClipboardEvent<HTMLInputElement>) {
     const text = e.clipboardData.getData('text')
-    if (!text.includes('\n') && !text.includes('\t')) return
+    // Trigger structured parse if pasted text looks like CSV/TSV (has newline, tab, or comma)
+    if (!text.includes('\n') && !text.includes('\t') && !text.includes(',')) return
     e.preventDefault()
     const pasted = text.split('\n').map(l => l.trim()).filter(Boolean).map(line => {
       const parts = line.split(/\t|,/).map(s => s.trim())
@@ -135,6 +136,7 @@ export default function BatchTab() {
                 className={inputClass}
                 value={row.website}
                 onChange={e => updateRow(i, 'website', e.target.value)}
+                onPaste={e => handlePaste(i, e)}
                 placeholder="https://jaaduboutique.com"
                 disabled={loading}
               />
@@ -142,6 +144,7 @@ export default function BatchTab() {
                 className={inputClass}
                 value={row.area}
                 onChange={e => updateRow(i, 'area', e.target.value)}
+                onPaste={e => handlePaste(i, e)}
                 placeholder="Dulwich"
                 disabled={loading}
               />
