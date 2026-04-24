@@ -10,6 +10,14 @@ export default function BatchTab() {
   async function researchAll() {
     const lines = input.split('\n').map(l => l.trim()).filter(Boolean)
     const retailers = lines.map(l => {
+      // Extract URL from anywhere in the line first
+      const urlMatch = l.match(/https?:\/\/\S+/)
+      if (urlMatch) {
+        const website = urlMatch[0]
+        const rest = l.replace(website, '').replace(/,+/g, ',').replace(/^,|,$/g, '').trim()
+        const [name, area] = rest.split(',').map(s => s.trim())
+        return { name, website, area }
+      }
       const [name, website, area] = l.split(',').map(s => s.trim())
       return { name, website, area }
     })
@@ -31,13 +39,13 @@ export default function BatchTab() {
       <div className="bg-[#111111] border border-[#2a2a2a] rounded-xl p-5 space-y-4">
         <div>
           <label className="text-xs text-[#6b7280] block mb-1.5 tracking-wide">
-            One per line — <code className="text-[#CDFF00] bg-[#0a0a0a] px-1.5 py-0.5 rounded text-xs">Name, website, area</code>
+            One per line — name only, <code className="text-[#CDFF00] bg-[#0a0a0a] px-1.5 py-0.5 rounded text-xs">Name https://url</code>, or <code className="text-[#CDFF00] bg-[#0a0a0a] px-1.5 py-0.5 rounded text-xs">Name, website, area</code>
           </label>
           <textarea
             className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg px-3 py-2.5 text-sm text-white placeholder-[#4b5563] font-mono h-36 focus:outline-none focus:border-[#CDFF00] transition-colors duration-200 resize-none"
             value={input}
             onChange={e => setInput(e.target.value)}
-            placeholder={"Jaadu Boutique\nMabel, , Dulwich\nForm SE15, formse15.com, Peckham"}
+            placeholder={"Bidhaar\nForm SE15 https://www.formse15.com\nJaadu Boutique, , Dulwich"}
           />
         </div>
         <button

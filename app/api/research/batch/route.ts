@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { researchRetailer, ResearchInput } from '@/lib/research'
 
+export const maxDuration = 300
+
 export async function POST(req: NextRequest) {
   const cookie = req.cookies.get('auth')
   if (cookie?.value !== process.env.SITE_PASSWORD) {
