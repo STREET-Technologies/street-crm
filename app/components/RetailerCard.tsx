@@ -29,6 +29,15 @@ export default function RetailerCard({ data, onSave, onDiscard }: Props) {
     { key: 'notes', label: 'Notes' }, { key: 'robots_txt', label: 'Robots.txt' },
   ]
 
+  if ((data as any).error) {
+    return (
+      <div className="bg-[#111111] border border-red-500/20 rounded-xl p-5">
+        <p className="text-sm font-medium text-white mb-1">{(data as any).retailer}</p>
+        <p className="text-xs text-red-400">{(data as any).error}</p>
+      </div>
+    )
+  }
+
   return (
     <div className="bg-[#111111] border border-[#2a2a2a] rounded-xl p-5 space-y-2.5">
       {fields.map(({ key, label }) => (

@@ -50,8 +50,9 @@ export default function BatchTab() {
           setResults(prev => [...prev, data])
           setStatuses(prev => ({ ...prev, [i]: { message: 'Done', done: true } }))
         } catch (err) {
-          setResults(prev => [...prev, { retailer: r.name, error: String(err) }])
-          setStatuses(prev => ({ ...prev, [i]: { message: 'Failed', done: true, error: true } }))
+          const errMsg = String(err)
+          setResults(prev => [...prev, { retailer: r.name, error: errMsg }])
+          setStatuses(prev => ({ ...prev, [i]: { message: errMsg, done: true, error: true } }))
         }
       })
     )
