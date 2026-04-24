@@ -23,27 +23,33 @@ export default function SingleTab() {
     setLoading(false)
   }
 
+  const inputClass = "w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg px-3 py-2.5 text-sm text-white placeholder-[#4b5563] focus:outline-none focus:border-[#CDFF00] transition-colors duration-200"
+
   return (
-    <div className="space-y-6">
-      <div className="bg-white rounded-xl border p-6 space-y-4">
+    <div className="space-y-4">
+      <div className="bg-[#111111] border border-[#2a2a2a] rounded-xl p-5 space-y-4">
         <div className="grid grid-cols-3 gap-3">
           <div className="col-span-3 sm:col-span-1">
-            <label className="text-xs text-gray-500 block mb-1">Retailer name *</label>
-            <input className="w-full border rounded px-3 py-2 text-sm" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Jaadu Boutique" />
+            <label className="text-xs text-[#6b7280] block mb-1.5 tracking-wide">Retailer name *</label>
+            <input className={inputClass} value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Jaadu Boutique" />
           </div>
           <div>
-            <label className="text-xs text-gray-500 block mb-1">Website hint</label>
-            <input className="w-full border rounded px-3 py-2 text-sm" value={website} onChange={e => setWebsite(e.target.value)} placeholder="optional" />
+            <label className="text-xs text-[#6b7280] block mb-1.5 tracking-wide">Website hint</label>
+            <input className={inputClass} value={website} onChange={e => setWebsite(e.target.value)} placeholder="optional" />
           </div>
           <div>
-            <label className="text-xs text-gray-500 block mb-1">Area</label>
-            <input className="w-full border rounded px-3 py-2 text-sm" value={area} onChange={e => setArea(e.target.value)} placeholder="e.g. Brixton" />
+            <label className="text-xs text-[#6b7280] block mb-1.5 tracking-wide">Area</label>
+            <input className={inputClass} value={area} onChange={e => setArea(e.target.value)} placeholder="e.g. Brixton" />
           </div>
         </div>
-        <button onClick={research} disabled={!name || loading} className="bg-black text-white px-5 py-2 rounded text-sm disabled:opacity-40">
+        <button
+          onClick={research}
+          disabled={!name || loading}
+          className="bg-[#CDFF00] text-black px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-[#b8e600] disabled:opacity-40 transition-colors duration-200 cursor-pointer"
+        >
           {loading ? 'Researching…' : 'Research →'}
         </button>
-        {error && <p className="text-red-500 text-sm">{error}</p>}
+        {error && <p className="text-red-400 text-xs">{error}</p>}
       </div>
 
       {result && <RetailerCard data={result} onDiscard={() => setResult(null)} />}

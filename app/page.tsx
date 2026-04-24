@@ -7,23 +7,34 @@ export default function Home() {
   const [tab, setTab] = useState<'single' | 'batch'>('single')
 
   return (
-    <main className="min-h-screen bg-gray-50">
-      <header className="bg-black text-white px-6 py-4 flex items-center justify-between">
-        <h1 className="font-semibold tracking-wide">STREET CRM — Retailer Research</h1>
-        <a href="/api/export" className="text-sm bg-white text-black px-3 py-1.5 rounded hover:bg-gray-100">
+    <main className="min-h-screen bg-[#0a0a0a]">
+      <header className="border-b border-[#2a2a2a] px-6 py-4 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <span className="text-white font-semibold tracking-widest text-sm uppercase">STREET</span>
+          <span className="text-[#2a2a2a]">/</span>
+          <span className="text-[#6b7280] text-sm">Retailer Research</span>
+        </div>
+        <a
+          href="/api/export"
+          className="text-xs text-[#6b7280] border border-[#2a2a2a] px-3 py-1.5 rounded-lg hover:border-[#CDFF00] hover:text-[#CDFF00] transition-colors duration-200 cursor-pointer"
+        >
           Export CSV
         </a>
       </header>
 
-      <div className="max-w-4xl mx-auto p-6">
-        <div className="flex gap-2 mb-6">
+      <div className="max-w-3xl mx-auto p-6">
+        <div className="flex gap-1 mb-8 bg-[#111111] border border-[#2a2a2a] rounded-lg p-1 w-fit">
           {(['single', 'batch'] as const).map(t => (
             <button
               key={t}
               onClick={() => setTab(t)}
-              className={`px-4 py-2 rounded text-sm font-medium ${tab === t ? 'bg-black text-white' : 'bg-white text-gray-600 border'}`}
+              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors duration-200 cursor-pointer ${
+                tab === t
+                  ? 'bg-[#CDFF00] text-black'
+                  : 'text-[#6b7280] hover:text-white'
+              }`}
             >
-              {t === 'single' ? 'Single Retailer' : 'Batch'}
+              {t === 'single' ? 'Single' : 'Batch'}
             </button>
           ))}
         </div>

@@ -24,28 +24,34 @@ export default function BatchTab() {
     setLoading(false)
   }
 
+  const count = input.split('\n').filter(l => l.trim()).length
+
   return (
-    <div className="space-y-6">
-      <div className="bg-white rounded-xl border p-6 space-y-4">
+    <div className="space-y-4">
+      <div className="bg-[#111111] border border-[#2a2a2a] rounded-xl p-5 space-y-4">
         <div>
-          <label className="text-xs text-gray-500 block mb-1">
-            One retailer per line. Format: <code className="bg-gray-100 px-1 rounded">Name, website (optional), area (optional)</code>
+          <label className="text-xs text-[#6b7280] block mb-1.5 tracking-wide">
+            One per line — <code className="text-[#CDFF00] bg-[#0a0a0a] px-1.5 py-0.5 rounded text-xs">Name, website, area</code>
           </label>
           <textarea
-            className="w-full border rounded px-3 py-2 text-sm h-36 font-mono"
+            className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg px-3 py-2.5 text-sm text-white placeholder-[#4b5563] font-mono h-36 focus:outline-none focus:border-[#CDFF00] transition-colors duration-200 resize-none"
             value={input}
             onChange={e => setInput(e.target.value)}
             placeholder={"Jaadu Boutique\nMabel, , Dulwich\nForm SE15, formse15.com, Peckham"}
           />
         </div>
-        <button onClick={researchAll} disabled={!input.trim() || loading} className="bg-black text-white px-5 py-2 rounded text-sm disabled:opacity-40">
-          {loading ? `Researching ${input.split('\n').filter(Boolean).length} retailers…` : 'Research All →'}
+        <button
+          onClick={researchAll}
+          disabled={!input.trim() || loading}
+          className="bg-[#CDFF00] text-black px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-[#b8e600] disabled:opacity-40 transition-colors duration-200 cursor-pointer"
+        >
+          {loading ? `Researching ${count} retailers…` : `Research ${count > 0 ? count : ''} ${count === 1 ? 'retailer' : count > 1 ? 'retailers' : 'All'} →`}
         </button>
       </div>
 
       {results.map((r, i) => (
         <div key={i}>
-          <p className="text-xs text-gray-400 mb-1 font-mono">{i + 1} / {results.length}</p>
+          <p className="text-xs text-[#4b5563] mb-2 font-mono tracking-wide">{i + 1} / {results.length}</p>
           <RetailerCard data={r} />
         </div>
       ))}

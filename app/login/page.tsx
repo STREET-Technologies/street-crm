@@ -22,18 +22,24 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-gray-50">
-      <form onSubmit={handleSubmit} className="bg-white p-8 rounded-xl shadow w-80 space-y-4">
-        <h1 className="text-xl font-semibold">STREET CRM</h1>
+    <main className="min-h-screen flex items-center justify-center bg-[#0a0a0a]">
+      <form onSubmit={handleSubmit} className="bg-[#111111] border border-[#2a2a2a] p-8 rounded-2xl w-80 space-y-5">
+        <div>
+          <h1 className="text-lg font-semibold tracking-widest text-white uppercase">STREET</h1>
+          <p className="text-xs text-[#6b7280] mt-0.5 tracking-wide">Retailer Research</p>
+        </div>
         <input
           type="password"
           placeholder="Password"
           value={password}
           onChange={e => setPassword(e.target.value)}
-          className="w-full border rounded px-3 py-2 text-sm"
+          className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg px-3 py-2.5 text-sm text-white placeholder-[#4b5563] focus:outline-none focus:border-[#CDFF00] transition-colors duration-200"
         />
-        {error && <p className="text-red-500 text-sm">Incorrect password</p>}
-        <button type="submit" className="w-full bg-black text-white rounded py-2 text-sm">
+        {error && <p className="text-red-400 text-xs">Incorrect password</p>}
+        <button
+          type="submit"
+          className="w-full bg-[#CDFF00] text-black font-semibold rounded-lg py-2.5 text-sm hover:bg-[#b8e600] transition-colors duration-200 cursor-pointer"
+        >
           Enter
         </button>
       </form>

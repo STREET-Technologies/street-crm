@@ -24,33 +24,42 @@ export default function RetailerCard({ data, onSave, onDiscard }: Props) {
   const fields: { key: keyof Retailer; label: string }[] = [
     { key: 'retailer', label: 'Retailer' }, { key: 'category', label: 'Category' },
     { key: 'shopify', label: 'Shopify' }, { key: 'website', label: 'Website' },
-    { key: 'linkedin', label: 'LinkedIn' }, { key: 'contact_email', label: 'Contact Email' },
+    { key: 'linkedin', label: 'LinkedIn' }, { key: 'contact_email', label: 'Email' },
     { key: 'decision_maker', label: 'Decision-Maker' }, { key: 'area', label: 'Area' },
     { key: 'notes', label: 'Notes' }, { key: 'robots_txt', label: 'Robots.txt' },
   ]
 
   return (
-    <div className="bg-white rounded-xl border p-6 space-y-3">
+    <div className="bg-[#111111] border border-[#2a2a2a] rounded-xl p-5 space-y-2.5">
       {fields.map(({ key, label }) => (
-        <div key={key} className="flex gap-3 items-start">
-          <span className="text-xs text-gray-500 w-32 pt-2 shrink-0">{label}</span>
+        <div key={key} className="flex gap-4 items-center">
+          <span className="text-xs text-[#6b7280] w-28 shrink-0 tracking-wide">{label}</span>
           <input
-            className="flex-1 border rounded px-2 py-1 text-sm"
+            className="flex-1 bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg px-3 py-1.5 text-sm text-white placeholder-[#4b5563] focus:outline-none focus:border-[#CDFF00] transition-colors duration-200"
             value={form[key] as string || ''}
             onChange={e => update(key, e.target.value)}
           />
         </div>
       ))}
-      <div className="flex gap-2 pt-2">
+      <div className="flex gap-2 pt-3 border-t border-[#2a2a2a] mt-3">
         {!saved ? (
           <>
-            <button onClick={save} disabled={saving} className="bg-black text-white px-4 py-1.5 rounded text-sm">
+            <button
+              onClick={save}
+              disabled={saving}
+              className="bg-[#CDFF00] text-black px-4 py-1.5 rounded-lg text-sm font-semibold hover:bg-[#b8e600] disabled:opacity-40 transition-colors duration-200 cursor-pointer"
+            >
               {saving ? 'Saving…' : 'Save to DB'}
             </button>
-            <button onClick={onDiscard} className="border px-4 py-1.5 rounded text-sm text-gray-600">Discard</button>
+            <button
+              onClick={onDiscard}
+              className="border border-[#2a2a2a] text-[#6b7280] px-4 py-1.5 rounded-lg text-sm hover:border-[#4b5563] hover:text-white transition-colors duration-200 cursor-pointer"
+            >
+              Discard
+            </button>
           </>
         ) : (
-          <span className="text-green-600 text-sm font-medium">✓ Saved</span>
+          <span className="text-[#CDFF00] text-sm font-medium">✓ Saved</span>
         )}
       </div>
     </div>
