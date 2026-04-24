@@ -19,8 +19,10 @@ export async function POST(req: NextRequest) {
     controller.enqueue(encoder.encode(`data: ${JSON.stringify(payload)}\n\n`))
 
   const stream = new ReadableStream({
-    async start(controller) {
-      await Promise.all(
+    start(controller) {
+      // Synchronous start — fire async work as a detached promise so the
+      // stream is returned to the client immediately and events flush as they arrive
+      Promise.all(
         retailers.map(async (r, i) => {
           try {
             const result = await researchRetailer(r, (msg) => {
@@ -31,8 +33,7 @@ export async function POST(req: NextRequest) {
             send(controller, { type: 'result', index: i, retailer: r.name, error: String(err) })
           }
         })
-      )
-      controller.close()
+      ).then(() => controller.close()).catch(() => controller.close())
     },
   })
 

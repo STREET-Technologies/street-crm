@@ -97,6 +97,18 @@ Return ONLY this JSON object. No text before or after, no markdown, no code fenc
   const tools = [{ type: 'web_search_20250305', name: 'web_search' }] as any[]
   const messages: any[] = [{ role: 'user', content: prompt }]
 
+  onProgress?.('Starting…')
+
+  // Extract and emit search queries from any API response
+  function emitSearches(content: any[]) {
+    for (const block of content) {
+      if (block.type === 'tool_use' && block.name === 'web_search') {
+        const query = (block.input as any)?.query
+        if (query) onProgress?.(`Searching: ${query}`)
+      }
+    }
+  }
+
   let message = await client.messages.create({
     model: 'claude-sonnet-4-6',
     max_tokens: 8192,
@@ -104,16 +116,12 @@ Return ONLY this JSON object. No text before or after, no markdown, no code fenc
     messages,
   })
 
-  // Agentic loop — emit progress for each search Claude makes
+  // Emit from first response (catches single-round searches where loop never runs)
+  emitSearches(message.content)
+
+  // Continue if Claude wants more rounds
   let iterations = 0
   while (message.stop_reason === 'tool_use' && iterations < 8) {
-    // Surface the search queries being made
-    for (const block of message.content) {
-      if (block.type === 'tool_use' && block.name === 'web_search') {
-        const query = (block.input as any)?.query
-        if (query) onProgress?.(`Searching: ${query}`)
-      }
-    }
     iterations++
     messages.push({ role: 'assistant', content: message.content })
     message = await client.messages.create({
@@ -122,6 +130,7 @@ Return ONLY this JSON object. No text before or after, no markdown, no code fenc
       tools,
       messages,
     })
+    emitSearches(message.content)
   }
 
   if (message.stop_reason === 'max_tokens') {
