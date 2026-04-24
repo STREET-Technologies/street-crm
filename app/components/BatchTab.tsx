@@ -36,17 +36,20 @@ export default function BatchTab() {
     retailers.forEach((_, i) => { initial[i] = { message: 'Researching…', done: false } })
     setStatuses(initial)
 
-    // Fire one request per retailer in parallel against the proven single endpoint
+    // Sequential with small stagger to avoid Vercel cold-start collisions
     await Promise.all(
       retailers.map(async (r, i) => {
+        await new Promise(res => setTimeout(res, i * 500))
         try {
           const res = await fetch('/api/research', {
             method: 'POST',
             body: JSON.stringify(r),
             headers: { 'Content-Type': 'application/json' },
           })
-          const data = await res.json()
-          if (!res.ok) throw new Error(data.error || 'Research failed')
+          const text = await res.text()
+          let data: any
+          try { data = JSON.parse(text) } catch { throw new Error(`Server error ${res.status}: ${text.slice(0, 120)}`) }
+          if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`)
           setResults(prev => [...prev, data])
           setStatuses(prev => ({ ...prev, [i]: { message: 'Done', done: true } }))
         } catch (err) {
