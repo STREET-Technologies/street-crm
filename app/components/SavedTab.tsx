@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import RetailerDetailModal from './RetailerDetailModal'
+import ConfirmDialog from './ConfirmDialog'
 
 export type Retailer = {
   id: number
@@ -52,6 +53,7 @@ export default function SavedTab() {
   const [selected, setSelected] = useState<Retailer | null>(null)
   const [checked, setChecked] = useState<Set<number>>(new Set())
   const [deleting, setDeleting] = useState<number | null>(null)
+  const [pendingDelete, setPendingDelete] = useState<Retailer | null>(null)
 
   async function load() {
     setLoading(true)
@@ -86,10 +88,11 @@ export default function SavedTab() {
     })
   }
 
-  async function handleDelete(r: Retailer, e: React.MouseEvent) {
-    e.stopPropagation()
-    if (!confirm(`Delete "${r.retailer}"? This cannot be undone.`)) return
+  async function confirmDelete() {
+    if (!pendingDelete) return
+    const r = pendingDelete
     setDeleting(r.id)
+    setPendingDelete(null)
     const res = await fetch(`/api/retailers?id=${r.id}`, { method: 'DELETE' })
     if (res.ok) {
       setRetailers(prev => prev.filter(x => x.id !== r.id))
@@ -210,12 +213,22 @@ export default function SavedTab() {
                     </td>
                     <td className="px-4 py-3">
                       <button
-                        onClick={e => handleDelete(r, e)}
+                        onClick={e => { e.stopPropagation(); setPendingDelete(r) }}
                         disabled={deleting === r.id}
                         title="Delete retailer"
-                        className="text-[#4b5563] hover:text-red-400 disabled:opacity-40 transition-colors duration-150 cursor-pointer text-base leading-none"
+                        className="w-8 h-8 flex items-center justify-center rounded-md text-[#6b7280] hover:text-red-400 hover:bg-red-500/10 disabled:opacity-40 transition-colors duration-150 cursor-pointer"
                       >
-                        {deleting === r.id ? '…' : '×'}
+                        {deleting === r.id ? (
+                          <span className="text-xs">…</span>
+                        ) : (
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="3 6 5 6 21 6" />
+                            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                            <path d="M10 11v6" />
+                            <path d="M14 11v6" />
+                            <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                          </svg>
+                        )}
                       </button>
                     </td>
                   </tr>
@@ -227,6 +240,17 @@ export default function SavedTab() {
       </div>
 
       {selected && <RetailerDetailModal retailer={selected} onClose={() => setSelected(null)} />}
+
+      {pendingDelete && (
+        <ConfirmDialog
+          title="Delete retailer?"
+          message={`"${pendingDelete.retailer}" will be permanently removed from the database. This cannot be undone.`}
+          confirmLabel="Delete"
+          danger
+          onConfirm={confirmDelete}
+          onCancel={() => setPendingDelete(null)}
+        />
+      )}
     </>
   )
 }
