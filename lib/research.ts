@@ -27,7 +27,13 @@ Retailer: ${input.name}
 ${input.website ? `Known website: ${input.website}` : ''}
 ${input.area ? `Area: ${input.area}, London` : 'Location: London, UK'}
 
-To determine Shopify: fetch the robots.txt of their website and look for cdn.shopify.com, /admin disallow, or explicit Shopify mentions. If no website, search for one first.
+SHOPIFY DETECTION (critical — follow these steps exactly):
+1. Find the retailer's website if not already known.
+2. Fetch <website>/robots.txt directly.
+3. If robots.txt contains any of: "cdn.shopify.com", "Disallow: /admin", "Shopify", "/checkouts/", "/cdn/shop/" → shopify = "Yes".
+4. If robots.txt exists but contains none of those → shopify = "No".
+5. Only use "Unknown" if the retailer has NO website at all.
+Do NOT return "Unknown" when a website exists — commit to Yes or No based on the robots.txt evidence.
 
 For decision_maker: find the founder, owner, or head of ecommerce/retail by name. Include their LinkedIn profile URL if findable.
 
