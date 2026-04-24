@@ -36,3 +36,7 @@ export async function upsertRetailer(r: Retailer) {
 export async function getAllRetailers() {
   return sql<Retailer>`SELECT * FROM retailers ORDER BY created_at DESC`
 }
+
+export async function deleteRetailer(id: number) {
+  return sql`DELETE FROM retailers WHERE id = ${id}`
+}
