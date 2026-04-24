@@ -3,9 +3,12 @@ import { useEffect, useState } from 'react'
 import RetailerCard from './RetailerCard'
 
 type Status = { message: string; done: boolean; error?: boolean; startedAt?: number; finishedAt?: number }
+type Row = { name: string; website: string; area: string }
+
+const emptyRow = (): Row => ({ name: '', website: '', area: '' })
 
 export default function BatchTab() {
-  const [input, setInput] = useState('')
+  const [rows, setRows] = useState<Row[]>([emptyRow(), emptyRow(), emptyRow()])
   const [loading, setLoading] = useState(false)
   const [results, setResults] = useState<any[]>([])
   const [statuses, setStatuses] = useState<Record<number, Status>>({})
@@ -13,36 +16,47 @@ export default function BatchTab() {
   const [tick, setTick] = useState(0)
   const [validationError, setValidationError] = useState('')
 
-  // Tick every second so the elapsed timers re-render live
   useEffect(() => {
     if (!loading) return
     const id = setInterval(() => setTick(t => t + 1), 1000)
     return () => clearInterval(id)
   }, [loading])
 
-  function parseLines(raw: string) {
-    return raw.split('\n').map(l => l.trim()).filter(Boolean).map(l => {
-      const urlMatch = l.match(/https?:\/\/\S+/)
-      if (urlMatch) {
-        const website = urlMatch[0]
-        const rest = l.replace(website, '').replace(/,+/g, ',').replace(/^,|,$/g, '').trim()
-        const [name, area] = rest.split(',').map(s => s.trim())
-        return { name, website, area }
+  function updateRow(i: number, field: keyof Row, value: string) {
+    setRows(r => r.map((row, idx) => idx === i ? { ...row, [field]: value } : row))
+    setValidationError('')
+  }
+
+  function addRow() { setRows(r => [...r, emptyRow()]) }
+  function removeRow(i: number) { setRows(r => r.filter((_, idx) => idx !== i)) }
+
+  function handlePaste(i: number, e: React.ClipboardEvent<HTMLInputElement>) {
+    const text = e.clipboardData.getData('text')
+    if (!text.includes('\n') && !text.includes('\t')) return
+    e.preventDefault()
+    const pasted = text.split('\n').map(l => l.trim()).filter(Boolean).map(line => {
+      const parts = line.split(/\t|,/).map(s => s.trim())
+      const urlMatch = line.match(/https?:\/\/\S+/)
+      if (urlMatch && parts.length < 2) {
+        return { name: line.replace(urlMatch[0], '').trim(), website: urlMatch[0], area: '' }
       }
-      const [name, website, area] = l.split(',').map(s => s.trim())
-      return { name, website, area }
+      return { name: parts[0] || '', website: parts[1] || '', area: parts[2] || '' }
+    })
+    setRows(prev => {
+      const next = [...prev]
+      pasted.forEach((p, offset) => { next[i + offset] = p })
+      return next
     })
   }
 
   async function researchAll() {
-    const retailers = parseLines(input)
+    const retailers = rows
+      .map(r => ({ name: r.name.trim(), website: r.website.trim(), area: r.area.trim() }))
+      .filter(r => r.name)
 
-    // Enforce mandatory website — dramatically improves result quality
+    if (!retailers.length) { setValidationError('Add at least one retailer.'); return }
     const missing = retailers.filter(r => !r.website).map(r => r.name)
-    if (missing.length) {
-      setValidationError(`Website is required for all retailers. Missing: ${missing.join(', ')}`)
-      return
-    }
+    if (missing.length) { setValidationError(`Website required. Missing: ${missing.join(', ')}`); return }
 
     setValidationError('')
     setLoading(true)
@@ -82,8 +96,7 @@ export default function BatchTab() {
   }
 
   const completed = Object.values(statuses).filter(s => s.done).length
-  const lineCount = input.split('\n').filter(l => l.trim()).length
-  const parsedRetailers = parseLines(input)
+  const filledRetailers = rows.filter(r => r.name.trim())
 
   function elapsed(s?: Status) {
     if (!s?.startedAt) return ''
@@ -91,37 +104,80 @@ export default function BatchTab() {
     return `${Math.floor((end - s.startedAt) / 1000)}s`
   }
 
-  // Reference tick to re-render while loading (avoids unused-var warning)
   void tick
+  const inputClass = "w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-white placeholder-[#4b5563] focus:outline-none focus:border-[#CDFF00] transition-colors duration-200"
 
   return (
     <div className="space-y-4">
       <div className="bg-[#111111] border border-[#2a2a2a] rounded-xl p-5 space-y-4">
-        <div>
-          <label className="text-xs text-[#6b7280] block mb-1.5 tracking-wide">
-            One per line — <span className="text-[#CDFF00]">website required</span>.{' '}
-            <code className="text-[#CDFF00] bg-[#0a0a0a] px-1.5 py-0.5 rounded text-xs">Name https://url</code>
-            {' '}or{' '}
-            <code className="text-[#CDFF00] bg-[#0a0a0a] px-1.5 py-0.5 rounded text-xs">Name, website, area</code>
-          </label>
-          <textarea
-            className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg px-3 py-2.5 text-sm text-white placeholder-[#4b5563] font-mono h-36 focus:outline-none focus:border-[#CDFF00] transition-colors duration-200 resize-none"
-            value={input}
-            onChange={e => { setInput(e.target.value); setValidationError('') }}
-            placeholder={"Bidhaar https://bidhaar.com\nForm SE15 https://www.formse15.com\nPhilip Normal https://philipnormal.store"}
-          />
-          {validationError && <p className="text-red-400 text-xs mt-2">{validationError}</p>}
+        {/* Column headers */}
+        <div className="grid grid-cols-[1fr_1.3fr_0.7fr_auto] gap-2 px-1">
+          <label className="text-xs text-[#6b7280] tracking-wide">Retailer *</label>
+          <label className="text-xs text-[#6b7280] tracking-wide">Website *</label>
+          <label className="text-xs text-[#6b7280] tracking-wide">Area</label>
+          <span className="w-6" />
         </div>
 
-        <div className="flex items-center gap-4">
+        {/* Rows */}
+        <div className="space-y-2">
+          {rows.map((row, i) => (
+            <div key={i} className="grid grid-cols-[1fr_1.3fr_0.7fr_auto] gap-2 items-center">
+              <input
+                className={inputClass}
+                value={row.name}
+                onChange={e => updateRow(i, 'name', e.target.value)}
+                onPaste={e => handlePaste(i, e)}
+                placeholder="Jaadu Boutique"
+                disabled={loading}
+              />
+              <input
+                className={inputClass}
+                value={row.website}
+                onChange={e => updateRow(i, 'website', e.target.value)}
+                placeholder="https://jaaduboutique.com"
+                disabled={loading}
+              />
+              <input
+                className={inputClass}
+                value={row.area}
+                onChange={e => updateRow(i, 'area', e.target.value)}
+                placeholder="Dulwich"
+                disabled={loading}
+              />
+              <button
+                onClick={() => removeRow(i)}
+                disabled={loading || rows.length === 1}
+                className="w-6 h-6 text-[#4b5563] hover:text-red-400 disabled:opacity-20 disabled:cursor-not-allowed cursor-pointer transition-colors duration-150 text-lg leading-none"
+                title="Remove row"
+              >
+                ×
+              </button>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex items-center justify-between">
+          <button
+            onClick={addRow}
+            disabled={loading}
+            className="text-xs text-[#6b7280] border border-[#2a2a2a] px-3 py-1.5 rounded-lg hover:border-[#CDFF00] hover:text-[#CDFF00] disabled:opacity-40 transition-colors duration-200 cursor-pointer"
+          >
+            + Add row
+          </button>
+          <span className="text-xs text-[#4b5563]">Tip: paste CSV or tab-separated text into any Retailer field to auto-fill multiple rows</span>
+        </div>
+
+        {validationError && <p className="text-red-400 text-xs">{validationError}</p>}
+
+        <div className="flex items-center gap-4 pt-2 border-t border-[#2a2a2a]">
           <button
             onClick={researchAll}
-            disabled={!input.trim() || loading}
+            disabled={!filledRetailers.length || loading}
             className="bg-[#CDFF00] text-black px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-[#b8e600] disabled:opacity-40 transition-colors duration-200 cursor-pointer shrink-0"
           >
             {loading
               ? `Researching… ${completed}/${total} done`
-              : `Research ${lineCount > 0 ? lineCount : ''} ${lineCount === 1 ? 'retailer' : 'retailers'} →`}
+              : `Research ${filledRetailers.length || ''} ${filledRetailers.length === 1 ? 'retailer' : 'retailers'} →`}
           </button>
 
           {loading && (
@@ -136,7 +192,7 @@ export default function BatchTab() {
 
         {loading && (
           <div className="space-y-1.5 pt-1">
-            {parsedRetailers.map((r, i) => {
+            {filledRetailers.map((r, i) => {
               const s = statuses[i]
               return (
                 <div key={i} className="flex items-center gap-2 text-xs font-mono">
@@ -147,9 +203,7 @@ export default function BatchTab() {
                   <span className={`truncate flex-1 ${s?.done ? (s.error ? 'text-red-400/70' : 'text-[#CDFF00]/60') : 'text-[#4b5563]'}`}>
                     {s?.message ?? ''}
                   </span>
-                  {s && (
-                    <span className="text-[#4b5563] shrink-0 tabular-nums">{elapsed(s)}</span>
-                  )}
+                  {s && <span className="text-[#4b5563] shrink-0 tabular-nums">{elapsed(s)}</span>}
                 </div>
               )
             })}
