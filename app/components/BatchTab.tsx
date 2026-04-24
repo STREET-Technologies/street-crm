@@ -6,6 +6,7 @@ type Status = { message: string; done: boolean; error?: boolean; startedAt?: num
 type Row = { name: string; website: string; area: string }
 
 const emptyRow = (): Row => ({ name: '', website: '', area: '' })
+const MAX_ROWS = 5
 
 export default function BatchTab() {
   const [rows, setRows] = useState<Row[]>([emptyRow(), emptyRow(), emptyRow()])
@@ -27,7 +28,7 @@ export default function BatchTab() {
     setValidationError('')
   }
 
-  function addRow() { setRows(r => [...r, emptyRow()]) }
+  function addRow() { setRows(r => r.length >= MAX_ROWS ? r : [...r, emptyRow()]) }
   function removeRow(i: number) { setRows(r => r.filter((_, idx) => idx !== i)) }
 
   function handlePaste(i: number, e: React.ClipboardEvent<HTMLInputElement>) {
@@ -44,8 +45,8 @@ export default function BatchTab() {
     })
     setRows(prev => {
       const next = [...prev]
-      pasted.forEach((p, offset) => { next[i + offset] = p })
-      return next
+      pasted.forEach((p, offset) => { if (i + offset < MAX_ROWS) next[i + offset] = p })
+      return next.slice(0, MAX_ROWS)
     })
   }
 
@@ -159,12 +160,14 @@ export default function BatchTab() {
         <div className="flex items-center justify-between">
           <button
             onClick={addRow}
-            disabled={loading}
-            className="text-xs text-[#6b7280] border border-[#2a2a2a] px-3 py-1.5 rounded-lg hover:border-[#CDFF00] hover:text-[#CDFF00] disabled:opacity-40 transition-colors duration-200 cursor-pointer"
+            disabled={loading || rows.length >= MAX_ROWS}
+            className="text-xs text-[#6b7280] border border-[#2a2a2a] px-3 py-1.5 rounded-lg hover:border-[#CDFF00] hover:text-[#CDFF00] disabled:opacity-40 disabled:cursor-not-allowed transition-colors duration-200 cursor-pointer"
           >
             + Add row
           </button>
-          <span className="text-xs text-[#4b5563]">Tip: paste CSV or tab-separated text into any Retailer field to auto-fill multiple rows</span>
+          <span className="text-xs text-[#4b5563]">
+            {rows.length}/{MAX_ROWS} rows · paste CSV or tab-separated text to auto-fill
+          </span>
         </div>
 
         {validationError && <p className="text-red-400 text-xs">{validationError}</p>}
