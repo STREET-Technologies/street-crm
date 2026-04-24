@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import RetailerCard from './RetailerCard'
 
-type Status = { message: string; done: boolean }
+type Status = { message: string; done: boolean; error?: boolean }
 
 export default function BatchTab() {
   const [input, setInput] = useState('')
@@ -29,42 +29,32 @@ export default function BatchTab() {
     const retailers = parseLines(input)
     setLoading(true)
     setResults([])
-    setStatuses({})
     setTotal(retailers.length)
 
-    const res = await fetch('/api/research/batch', {
-      method: 'POST',
-      body: JSON.stringify({ retailers }),
-      headers: { 'Content-Type': 'application/json' },
-    })
+    // Initialise all statuses immediately so the feed shows from the start
+    const initial: Record<number, Status> = {}
+    retailers.forEach((_, i) => { initial[i] = { message: 'Researching…', done: false } })
+    setStatuses(initial)
 
-    if (!res.ok || !res.body) { setLoading(false); return }
-
-    const reader = res.body.getReader()
-    const decoder = new TextDecoder()
-    let buffer = ''
-
-    while (true) {
-      const { done, value } = await reader.read()
-      if (done) break
-
-      buffer += decoder.decode(value, { stream: true })
-      const lines = buffer.split('\n')
-      buffer = lines.pop() ?? ''
-
-      for (const line of lines) {
-        if (!line.startsWith('data: ')) continue
+    // Fire one request per retailer in parallel against the proven single endpoint
+    await Promise.all(
+      retailers.map(async (r, i) => {
         try {
-          const event = JSON.parse(line.slice(6))
-          if (event.type === 'progress') {
-            setStatuses(prev => ({ ...prev, [event.index]: { message: event.message, done: false } }))
-          } else if (event.type === 'result') {
-            setResults(prev => [...prev, event])
-            setStatuses(prev => ({ ...prev, [event.index]: { message: 'Done', done: true } }))
-          }
-        } catch { /* malformed chunk */ }
-      }
-    }
+          const res = await fetch('/api/research', {
+            method: 'POST',
+            body: JSON.stringify(r),
+            headers: { 'Content-Type': 'application/json' },
+          })
+          const data = await res.json()
+          if (!res.ok) throw new Error(data.error || 'Research failed')
+          setResults(prev => [...prev, data])
+          setStatuses(prev => ({ ...prev, [i]: { message: 'Done', done: true } }))
+        } catch (err) {
+          setResults(prev => [...prev, { retailer: r.name, error: String(err) }])
+          setStatuses(prev => ({ ...prev, [i]: { message: 'Failed', done: true, error: true } }))
+        }
+      })
+    )
 
     setLoading(false)
   }
@@ -112,21 +102,20 @@ export default function BatchTab() {
           )}
         </div>
 
-        {/* Per-retailer status feed */}
-        {loading && Object.keys(statuses).length > 0 && (
+        {/* Per-retailer status feed — visible from the moment research starts */}
+        {loading && (
           <div className="space-y-1.5 pt-1">
             {retailerNames.map((name, i) => {
               const s = statuses[i]
               return (
-                <div key={i} className="flex items-start gap-2 text-xs font-mono">
-                  <span className={`shrink-0 mt-0.5 ${s?.done ? 'text-[#CDFF00]' : 'text-[#4b5563]'}`}>
-                    {s?.done ? '✓' : s ? '→' : '·'}
+                <div key={i} className="flex items-center gap-2 text-xs font-mono">
+                  <span className={`shrink-0 ${s?.done ? (s.error ? 'text-red-400' : 'text-[#CDFF00]') : 'text-[#4b5563]'}`}>
+                    {s?.done ? (s.error ? '✗' : '✓') : '→'}
                   </span>
                   <span className="text-[#6b7280] shrink-0">{name}</span>
-                  {s && !s.done && (
-                    <span className="text-[#4b5563] truncate">{s.message}</span>
-                  )}
-                  {s?.done && <span className="text-[#CDFF00]/60">done</span>}
+                  <span className={`truncate ${s?.done ? (s.error ? 'text-red-400/60' : 'text-[#CDFF00]/60') : 'text-[#4b5563]'}`}>
+                    {s?.message ?? ''}
+                  </span>
                 </div>
               )
             })}
