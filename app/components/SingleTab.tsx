@@ -7,16 +7,19 @@ export default function SingleTab() {
   const [website, setWebsite] = useState('')
   const [area, setArea] = useState('')
   const [loading, setLoading] = useState(false)
+  const [elapsed, setElapsed] = useState(0)
   const [result, setResult] = useState<any>(null)
   const [error, setError] = useState('')
 
   async function research() {
-    setLoading(true); setError(''); setResult(null)
+    setLoading(true); setError(''); setResult(null); setElapsed(0)
+    const timer = setInterval(() => setElapsed(s => s + 1), 1000)
     const res = await fetch('/api/research', {
       method: 'POST',
       body: JSON.stringify({ name, website, area }),
       headers: { 'Content-Type': 'application/json' },
     })
+    clearInterval(timer)
     const data = await res.json()
     if (!res.ok) setError(data.error || 'Research failed')
     else setResult(data)
@@ -47,7 +50,7 @@ export default function SingleTab() {
           disabled={!name || loading}
           className="bg-[#CDFF00] text-black px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-[#b8e600] disabled:opacity-40 transition-colors duration-200 cursor-pointer"
         >
-          {loading ? 'Researching…' : 'Research →'}
+          {loading ? `Researching… ${elapsed}s` : 'Research →'}
         </button>
         {error && <p className="text-red-400 text-xs">{error}</p>}
       </div>
