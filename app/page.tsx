@@ -2,9 +2,16 @@
 import { useState } from 'react'
 import SingleTab from './components/SingleTab'
 import BatchTab from './components/BatchTab'
+import SavedTab from './components/SavedTab'
 
 export default function Home() {
-  const [tab, setTab] = useState<'single' | 'batch'>('single')
+  const [tab, setTab] = useState<'single' | 'batch' | 'saved'>('single')
+
+  const tabs = [
+    { id: 'single', label: 'Single' },
+    { id: 'batch', label: 'Batch' },
+    { id: 'saved', label: 'Saved' },
+  ] as const
 
   return (
     <main className="min-h-screen bg-[#0a0a0a]">
@@ -22,24 +29,26 @@ export default function Home() {
         </a>
       </header>
 
-      <div className="max-w-3xl mx-auto p-6">
+      <div className="max-w-4xl mx-auto p-6">
         <div className="flex gap-1 mb-8 bg-[#111111] border border-[#2a2a2a] rounded-lg p-1 w-fit">
-          {(['single', 'batch'] as const).map(t => (
+          {tabs.map(t => (
             <button
-              key={t}
-              onClick={() => setTab(t)}
+              key={t.id}
+              onClick={() => setTab(t.id)}
               className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors duration-200 cursor-pointer ${
-                tab === t
+                tab === t.id
                   ? 'bg-[#CDFF00] text-black'
                   : 'text-[#6b7280] hover:text-white'
               }`}
             >
-              {t === 'single' ? 'Single' : 'Batch'}
+              {t.label}
             </button>
           ))}
         </div>
 
-        {tab === 'single' ? <SingleTab /> : <BatchTab />}
+        {tab === 'single' && <SingleTab />}
+        {tab === 'batch' && <BatchTab />}
+        {tab === 'saved' && <SavedTab />}
       </div>
     </main>
   )
